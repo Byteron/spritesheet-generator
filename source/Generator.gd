@@ -21,7 +21,6 @@ func _on_Button_pressed() -> void:
 
 	var dimensions = Vector2(width, file_data.size() / width + 1)
 
-	var final_image := Image.new()
 	var sheet_image := Image.new()
 	var sheet_info := SheetInfo.new()
 
@@ -47,8 +46,6 @@ func _on_Button_pressed() -> void:
 			cursor.y += max_height
 			max_height = 0
 
-		max_height = max(max_height, rect.size.y)
-
 		image.lock()
 
 		# draw pixels
@@ -60,26 +57,14 @@ func _on_Button_pressed() -> void:
 		# make dict entry
 		sheet_info.data[file.id] = {}
 		sheet_info.data[file.id].id = file.id
-		sheet_info.data[file.id].rect = Rect2(Vector2(cursor.x, cursor.y), image.get_size())
+		sheet_info.data[file.id].rect = Rect2(Vector2(cursor.x, cursor.y), rect.size)
 		sheet_info.data[file.id].offset = rect.position
 
 		cursor.x += rect.size.x
+		max_height = max(max_height, rect.size.y)
 
-	# Create Final Image
-	var sheet_rect = sheet_image.get_used_rect()
-
-	final_image.create(sheet_rect.size.x, sheet_rect.size.y, false, Image.FORMAT_RGBA8)
-	final_image.fill(Color("00000000"))
-
-	sheet_image.lock()
-	final_image.lock()
-
-	for p_y in sheet_rect.size.y:
-		for p_x in sheet_rect.size.x:
-			var color = sheet_image.get_pixel(p_x, p_y)
-			final_image.set_pixel(p_x, p_y, color)
-
-	final_image.save_png("res://output/" + name_line.text + ".png")
+	sheet_image.cropv(sheet_image.get_used_rect().size)
+	sheet_image.save_png("res://output/" + name_line.text + ".png")
 	ResourceSaver.save("res://output/" + name_line.text + ".tres", sheet_info)
 
 func get_max_image_size(file_data: Array) -> Vector2:
