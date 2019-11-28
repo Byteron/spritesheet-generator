@@ -21,6 +21,7 @@ func _on_Button_pressed() -> void:
 
 	var dimensions = Vector2(width, file_data.size() / width + 1)
 
+	var final_image := Image.new()
 	var sheet_image := Image.new()
 	var sheet_info := SheetInfo.new()
 
@@ -29,8 +30,8 @@ func _on_Button_pressed() -> void:
 
 	sheet_image.lock()
 
-	var x := 0
-	var y := 0
+	var cursor := Vector2(0, 0)
+	var max_height := 0
 
 	file_data.sort_custom(self, "sort_image_info")
 	file_data.invert()
@@ -39,27 +40,46 @@ func _on_Button_pressed() -> void:
 
 		var image := file.data.get_data() as Image
 
-		# make dict entry
-		sheet_info.data[file.id] = {}
-		sheet_info.data[file.id].id = file.id
-		sheet_info.data[file.id].rect = Rect2(Vector2(x * max_image_size.x, y * max_image_size.y), image.get_size())
-		sheet_info.data[file.id].offset = image.get_used_rect().position
-
 		var rect = image.get_used_rect()
+
+		if cursor.x + rect.size.x > width * max_image_size.x:
+			cursor.x = 0
+			cursor.y += max_height
+			max_height = 0
+
+		max_height = max(max_height, rect.size.y)
 
 		image.lock()
 
+		# draw pixels
 		for p_y in rect.size.y:
 			for p_x in rect.size.x:
-				var color = image.get_pixel(p_x + rect.position.x, p_y + rect.position.y)
-				sheet_image.set_pixel(x * max_image_size.x + p_x, y * max_image_size.y + p_y, color)
+				var color = image.get_pixel(rect.position.x + p_x, rect.position.y + p_y)
+				sheet_image.set_pixel(cursor.x + p_x, cursor.y + p_y, color)
 
-		x += 1
-		if x == width:
-			x = 0
-			y += 1
+		# make dict entry
+		sheet_info.data[file.id] = {}
+		sheet_info.data[file.id].id = file.id
+		sheet_info.data[file.id].rect = Rect2(Vector2(cursor.x, cursor.y), image.get_size())
+		sheet_info.data[file.id].offset = rect.position
 
-	sheet_image.save_png("res://output/" + name_line.text + ".png")
+		cursor.x += rect.size.x
+
+	# Create Final Image
+	var sheet_rect = sheet_image.get_used_rect()
+
+	final_image.create(sheet_rect.size.x, sheet_rect.size.y, false, Image.FORMAT_RGBA8)
+	final_image.fill(Color("00000000"))
+
+	sheet_image.lock()
+	final_image.lock()
+
+	for p_y in sheet_rect.size.y:
+		for p_x in sheet_rect.size.x:
+			var color = sheet_image.get_pixel(p_x, p_y)
+			final_image.set_pixel(p_x, p_y, color)
+
+	final_image.save_png("res://output/" + name_line.text + ".png")
 	ResourceSaver.save("res://output/" + name_line.text + ".tres", sheet_info)
 
 func get_max_image_size(file_data: Array) -> Vector2:
@@ -67,7 +87,7 @@ func get_max_image_size(file_data: Array) -> Vector2:
 
 	for file in file_data:
 		var image := file.data.get_data() as Image
-		var size := image.get_used_rect().size
+		var size := image.get_size()
 		max_size = Vector2(max(max_size.x, size.x), max(max_size.y, size.y))
 
 	return max_size
@@ -76,4 +96,4 @@ func sort_image_info(a: Dictionary, b: Dictionary) -> bool:
 	var a_image := a.data.get_data() as Image
 	var b_image := b.data.get_data() as Image
 
-	return a_image.get_used_rect().size.length() < b_image.get_used_rect().size.length()
+	return a_image.get_used_rect().size.y < b_image.get_used_rect().size.y
