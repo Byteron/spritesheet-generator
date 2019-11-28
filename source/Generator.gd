@@ -63,7 +63,8 @@ func _on_Button_pressed() -> void:
 		cursor.x += rect.size.x
 		max_height = max(max_height, rect.size.y)
 
-	sheet_image.cropv(sheet_image.get_used_rect().size)
+	var sheet_size = sheet_image.get_used_rect().size
+	sheet_image.crop(sheet_size.x, sheet_size.y)
 	sheet_image.save_png("res://output/" + name_line.text + ".png")
 	ResourceSaver.save("res://output/" + name_line.text + ".tres", sheet_info)
 
