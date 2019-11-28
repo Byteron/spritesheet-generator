@@ -22,7 +22,7 @@ func _on_Button_pressed() -> void:
 	var dimensions = Vector2(width, file_data.size() / width + 1)
 
 	var sheet_image := Image.new()
-	var sheet_info := SheetInfo.new()
+	var data := {}
 
 	sheet_image.create(dimensions.x * max_image_size.x, dimensions.y * max_image_size.y, false, Image.FORMAT_RGBA8)
 	sheet_image.fill(Color("00000000"))
@@ -55,18 +55,24 @@ func _on_Button_pressed() -> void:
 				sheet_image.set_pixel(cursor.x + p_x, cursor.y + p_y, color)
 
 		# make dict entry
-		sheet_info.data[file.id] = {}
-		sheet_info.data[file.id].id = file.id
-		sheet_info.data[file.id].rect = Rect2(Vector2(cursor.x, cursor.y), rect.size)
-		sheet_info.data[file.id].offset = rect.position
+		data[file.id] = {}
+		data[file.id].id = file.id
+		data[file.id].rect = Rect2(Vector2(cursor.x, cursor.y), rect.size)
+		data[file.id].offset = rect.position
 
 		cursor.x += rect.size.x
 		max_height = max(max_height, rect.size.y)
 
 	var sheet_size = sheet_image.get_used_rect().size
 	sheet_image.crop(sheet_size.x, sheet_size.y)
+
 	sheet_image.save_png("res://output/" + name_line.text + ".png")
-	ResourceSaver.save("res://output/" + name_line.text + ".tres", sheet_info)
+
+	var file = File.new()
+	file.open("res://output/" + name_line.text + ".json", File.WRITE)
+	file.store_string(to_json(data))
+	file.close()
+
 
 func get_max_image_size(file_data: Array) -> Vector2:
 	var max_size = Vector2(0, 0)
